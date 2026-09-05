@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const packages = [
   { id: '1', label: 'شهرين', price: 3000, note: 'الأكثر طلبًا' },
@@ -116,42 +117,237 @@ export default function HomePage() {
     }
   }
 
+  // Animation variants
+  const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
+  const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="brand"><span className="brand-mark">و</span><span>ستار موبايل</span></div>
-      </header>
+      <section className="workspace" style={{ paddingTop: '60px' }}>
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeIn}
+        >
+          <div className="section-heading">
+            <span className="step">01</span>
+            <div>
+              <h2>استعلام عن الكرت</h2>
+              <p>أدخل رقم الكرت لمعرفة حالة الاشتراك الحالية</p>
+            </div>
+          </div>
+          
+          <form className="lookup" onSubmit={inquire}>
+            <label htmlFor="card-number">رقم الكرت</label>
+            <div className="input-row">
+              <input 
+                id="card-number" 
+                inputMode="numeric" 
+                value={cardNumber} 
+                onChange={(event) => setCardNumber(event.target.value)} 
+                placeholder="مثال: 123456" 
+              />
+              <button type="submit" disabled={loading}>
+                {loading ? 'جارِ البحث...' : 'استعلام'}
+              </button>
+            </div>
+          </form>
+        </motion.div>
 
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">خدمة إلكترونية سريعة</p>
-          <h1>منظومة <em>الوادي</em></h1>
-          <p className="hero-text">استعلم عن كرتك وجدد اشتراكك خلال لحظات، من مكان واحد.</p>
-        </div>
-        <div className="hero-seal"><span>AL</span><small>ALWADI<br />NETWORK</small></div>
+        <AnimatePresence>
+          {message && (
+            <motion.div 
+              className="message"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              {message}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {subscriber && (
+            <motion.div 
+              className={`subscriber-card ${subscriber.days <= 10 ? 'danger-mode' : 'success-mode'}`}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+            >
+              <div className="sc-header">
+                <div className="sc-identity">
+                  <div className="sc-avatar">{subscriber.name.charAt(0)}</div>
+                  <div className="sc-name">
+                    <span>المشترك</span>
+                    <strong>{subscriber.name}</strong>
+                  </div>
+                </div>
+                <div className="sc-status-badge">
+                  <i className="pulse-dot"></i>
+                  {subscriber.days <= 0 ? 'منتهي' : subscriber.days <= 10 ? 'قارب على الانتهاء' : 'فعّال'}
+                </div>
+              </div>
+
+              <div className="sc-body">
+                <div className="sc-days">
+                  <strong>{subscriber.days}</strong>
+                  <span>يوم متبقٍ</span>
+                </div>
+                
+                <div className="sc-details">
+                  <div className="sc-detail-item">
+                    <span>تاريخ الانتهاء</span>
+                    <strong>{subscriber.expiry}</strong>
+                  </div>
+                  <div className="sc-detail-item">
+                    <span>رقم الجوال</span>
+                    <strong dir="ltr">{subscriber.mobile || 'غير مسجل'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sc-footer">
+                <button 
+                  className="sc-test-btn" 
+                  onClick={sendTestSms} 
+                  disabled={sendingTestSms || !subscriber.mobile}
+                >
+                  <span className="icon">✉</span>
+                  {sendingTestSms ? 'جارِ الإرسال...' : 'إرسال رسالة تجريبية'}
+                </button>
+                <div className="sc-watermark">VIP MEMBER</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div 
+          className="section-heading renew-heading"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeIn}
+        >
+          <span className="step">02</span>
+          <div>
+            <h2>اختر مدة التجديد</h2>
+            <p>حدد الباقة المناسبة لاحتياجك</p>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="packages"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+        >
+          {packages.map((item) => (
+            <motion.div
+              key={item.id} 
+              variants={fadeIn}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className={`package ${selected === item.id ? 'selected' : ''}`} 
+              onClick={() => setSelected(item.id)}
+            >
+              <span className="radio">{selected === item.id ? '✓' : ''}</span>
+              <strong>{item.label}</strong>
+              <span>{item.note}</span>
+              <b>{item.price.toLocaleString('ar-LY')} <small>د.ل</small></b>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.div 
+          className="summary"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+        >
+          <div>
+            <span>الباقة المختارة</span>
+            <strong>تجديد {selectedPackage.label}</strong>
+          </div>
+          <div>
+            <span>الإجمالي</span>
+            <strong className="total">{selectedPackage.price.toLocaleString('ar-LY')} <small>د.ل</small></strong>
+          </div>
+          <button className="primary-btn" onClick={renew}>
+            تأكيد التجديد <span>←</span>
+          </button>
+        </motion.div>
       </section>
 
-      <section className="workspace">
-        <div className="section-heading"><span className="step">01</span><div><h2>استعلام عن الكرت</h2><p>أدخل رقم الكرت لمعرفة حالة الاشتراك الحالية</p></div></div>
-        <form className="lookup" onSubmit={inquire}>
-          <label htmlFor="card-number">رقم الكرت</label>
-          <div className="input-row"><input id="card-number" inputMode="numeric" value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder="مثال: 123456" /><button type="submit" disabled={loading}>{loading ? 'جارِ البحث...' : 'استعلام'}</button></div>
-          <small>للمعاينة السريعة جرّب: 123456</small>
-        </form>
+      <footer>
+        <span>منظومة الوادي بريميوم</span>
+        <span>جميع العمليات آمنة وموثقة بتقنية التشفير</span>
+      </footer>
 
-        {subscriber && <div className="subscriber"><div className="subscriber-identity"><div className="avatar">{subscriber.name.charAt(0)}</div><div className="subscriber-name"><span>بيانات المشترك</span><strong>{subscriber.name}</strong></div></div><div className="subscriber-data"><span>تاريخ الانتهاء</span><strong>{subscriber.expiry}</strong></div><div className="subscriber-phone"><span>رقم الجوال</span><strong>{subscriber.mobile || 'غير مسجل'}</strong><button className="test-sms" onClick={sendTestSms} disabled={sendingTestSms || !subscriber.mobile}>{sendingTestSms ? 'جارِ الإرسال...' : 'إرسال رسالة تجريبية'}</button></div><div className="status"><i /> فعّال <small className="days-left">{subscriber.days} يوم متبقٍ</small></div></div>}
-        {message && <div className="message">{message}</div>}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div 
+            className="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="modal"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <div className="modal-content">
+                <div className="modal-icon">؟</div>
+                <h2>تأكيد التجديد</h2>
+                <p>سيتم خصم <strong>{selectedPackage.price.toLocaleString('ar-LY')} د.ل</strong> لتجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label}.</p>
+                <div className="modal-actions">
+                  <button onClick={() => setShowConfirm(false)} className="secondary-btn">لا، إلغاء</button>
+                  <button onClick={confirmRenewal} className="primary-btn">نعم، أكد التجديد</button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
 
-        <div className="section-heading renew-heading"><span className="step">02</span><div><h2>اختر مدة التجديد</h2><p>حدد الباقة المناسبة لاحتياجك</p></div></div>
-        <div className="packages">{packages.map((item) => <button key={item.id} className={`package ${selected === item.id ? 'selected' : ''}`} onClick={() => setSelected(item.id)}><span className="radio">{selected === item.id ? '✓' : ''}</span><strong>{item.label}</strong><span>{item.note}</span><b>{item.price.toLocaleString('ar-LY')} <small>د.ل</small></b></button>)}</div>
-
-        <div className="summary"><div><span>الباقة المختارة</span><strong>تجديد {selectedPackage.label}</strong></div><div><span>الإجمالي</span><strong className="total">{selectedPackage.price.toLocaleString('ar-LY')} <small>د.ل</small></strong></div><button className="primary" onClick={renew}>تأكيد التجديد <span>←</span></button></div>
-      </section>
-
-      <footer><span>منظومة الوادي</span><span>جميع العمليات آمنة وموثقة</span></footer>
-
-      {showConfirm && <div className="overlay"><div className="modal"><div className="modal-icon">؟</div><h2>هل تريد تأكيد التجديد؟</h2><p>سيتم خصم <strong>{selectedPackage.price.toLocaleString('ar-LY')} د.ل</strong> لتجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label}.</p><div className="modal-actions"><button onClick={() => setShowConfirm(false)} className="secondary">لا، إلغاء</button><button onClick={confirmRenewal} className="primary">نعم، أكد التجديد</button></div></div></div>}
-      {complete && <div className="overlay"><div className="modal success-modal"><div className="success-icon">✓</div><p className="eyebrow">تمت العملية بنجاح</p><h2>تم تجديد الاشتراك</h2><p>تم تسجيل تجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label} بنجاح.</p><button className="primary" onClick={() => setComplete(false)}>متابعة</button></div></div>}
+        {complete && (
+          <motion.div 
+            className="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="modal success-modal"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <div className="modal-content">
+                <motion.div 
+                  className="success-icon"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1, rotate: 360 }}
+                  transition={{ type: 'spring', damping: 10, delay: 0.2 }}
+                >
+                  ✓
+                </motion.div>
+                <p className="eyebrow" style={{ color: 'var(--success)' }}>تمت العملية بنجاح</p>
+                <h2>تم تجديد الاشتراك</h2>
+                <p>تم تسجيل تجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label} بنجاح.</p>
+                <button className="primary-btn" style={{ width: '100%' }} onClick={() => setComplete(false)}>متابعة</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
