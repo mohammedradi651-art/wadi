@@ -146,7 +146,7 @@ export default function HomePage() {
                 inputMode="numeric" 
                 value={cardNumber} 
                 onChange={(event) => setCardNumber(event.target.value)} 
-                placeholder="مثال: 123456" 
+                placeholder="رقم الكرت" 
               />
               <button type="submit" disabled={loading}>
                 {loading ? 'جارِ البحث...' : 'استعلام'}
@@ -257,7 +257,7 @@ export default function HomePage() {
               <span className="radio">{selected === item.id ? '✓' : ''}</span>
               <strong>{item.label}</strong>
               <span>{item.note}</span>
-              <b>{item.price.toLocaleString('ar-LY')} <small>د.ل</small></b>
+              <b>{item.price.toLocaleString('ar-LY')} <small>ريال يمني</small></b>
             </motion.div>
           ))}
         </motion.div>
@@ -275,7 +275,7 @@ export default function HomePage() {
           </div>
           <div>
             <span>الإجمالي</span>
-            <strong className="total">{selectedPackage.price.toLocaleString('ar-LY')} <small>د.ل</small></strong>
+            <strong className="total">{selectedPackage.price.toLocaleString('ar-LY')} <small>ريال</small></strong>
           </div>
           <button className="primary-btn" onClick={renew}>
             تأكيد التجديد <span>←</span>
@@ -284,7 +284,7 @@ export default function HomePage() {
       </section>
 
       <footer>
-        <span>منظومة الوادي بريميوم</span>
+        <span>منظومة الوادي للبث الرقمي</span>
         <span>جميع العمليات آمنة وموثقة بتقنية التشفير</span>
       </footer>
 
@@ -306,7 +306,7 @@ export default function HomePage() {
               <div className="modal-content">
                 <div className="modal-icon">؟</div>
                 <h2>تأكيد التجديد</h2>
-                <p>سيتم خصم <strong>{selectedPackage.price.toLocaleString('ar-LY')} د.ل</strong> لتجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label}.</p>
+                <p>سيتم خصم <strong>{selectedPackage.price.toLocaleString('ar-LY')} ريال</strong> لتجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label}.</p>
                 <div className="modal-actions">
                   <button onClick={() => setShowConfirm(false)} className="secondary-btn">لا، إلغاء</button>
                   <button onClick={confirmRenewal} className="primary-btn">نعم، أكد التجديد</button>
