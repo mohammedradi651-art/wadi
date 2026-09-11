@@ -16,6 +16,7 @@ export default function HomePage() {
   const [selected, setSelected] = useState('1');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState('جارِ المعالجة...');
   const [sendingTestSms, setSendingTestSms] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -30,6 +31,7 @@ export default function HomePage() {
       setMessage('أدخل رقم الكرت للاستعلام.');
       return;
     }
+    setLoadingLabel('جارِ الاستعلام عن الكرت...');
     setLoading(true);
     try {
       const response = await fetch('/lookup', {
@@ -66,6 +68,7 @@ export default function HomePage() {
 
   async function confirmRenewal() {
     setShowConfirm(false);
+    setLoadingLabel('جارِ تجديد الاشتراك...');
     setLoading(true);
     try {
       const response = await fetch('/renew', {
@@ -277,8 +280,8 @@ export default function HomePage() {
             <span>الإجمالي</span>
             <strong className="total">{selectedPackage.price.toLocaleString('ar-LY')} <small>ريال</small></strong>
           </div>
-          <button className="primary-btn" onClick={renew}>
-            تأكيد التجديد <span>←</span>
+          <button className="primary-btn" onClick={renew} disabled={loading}>
+            {loading ? 'جارِ التنفيذ...' : <>تأكيد التجديد <span>←</span></>}
           </button>
         </motion.div>
       </section>
@@ -289,6 +292,30 @@ export default function HomePage() {
       </footer>
 
       <AnimatePresence>
+        {loading && (
+          <motion.div
+            className="overlay loading-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="loading-box"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+            >
+              <motion.div
+                className="loading-spinner"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+              />
+              <strong>{loadingLabel}</strong>
+              <span>يرجى الانتظار لحظات</span>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showConfirm && (
           <motion.div 
             className="overlay"

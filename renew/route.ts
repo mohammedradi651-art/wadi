@@ -74,7 +74,7 @@ export async function POST(req: Request) {
           },
           body: JSON.stringify({
             phone: String(phone).trim(),
-            message: `تم تجديد كرت منظومة الوادي بنجاح.\n\nالاسم: ${customerName || "غير محدد"}\nالفئة: ${packageLabel || "غير محددة"}\nالمبلغ: ${amount || "غير محدد"} ريال\nتاريخ الانتهاء: ${newExpiry}`
+            message: `تم تجديد كرت منظومة الوادي بنجاح.\n\nالاسم: ${customerName || "غير محدد"}\nالفئة: ${packageLabel || "غير محددة"}\nالمبلغ: ${amount || "غير محدد"} ريال\n\nشكرًا لاختياركم ستار ميديا 💙`
           })
         });
         smsSent = smsResponse.ok;
