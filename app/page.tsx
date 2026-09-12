@@ -119,6 +119,7 @@ export default function HomePage() {
       }
 
       setDeposit(result.deposit);
+      setRenewalConfirmationOpen(true);
       setMessage('');
     } catch {
       setMessage('تعذر الاتصال بخدمة مطابقة الإيداعات.');
@@ -205,10 +206,9 @@ export default function HomePage() {
             <div className="section-heading"><span className="step">03</span><div><h2>تحقق من الإيداع</h2><p>{bank.id === 'al-amqi' ? 'اختر المصرف الذي أودعت فيه ثم أدخل رقم حسابك' : 'اختر البنك الذي أودعت فيه ثم أدخل رقم العملية'}</p></div></div>
             <div className="bank-list">{banks.map((item) => <button type="button" key={item.id} className={`bank-option bank-option-${item.id} ${selectedBank === item.id ? 'selected' : ''}`} onClick={() => { setSelectedBank(item.id); setBankValue(''); setDeposit(null); }}><span className="bank-icon"><img src={item.logo} alt="" /></span><strong>{item.label}</strong><span className="bank-check">{selectedBank === item.id ? '✓' : ''}</span></button>)}</div>
             <div className="account-display"><strong dir="ltr">{bank.account}</strong><button type="button" className="copy-account" onClick={copyAccount}>{copiedAccount ? 'تم النسخ ✓' : 'نسخ رقم الحساب'}</button></div>
-            <form onSubmit={verifyDeposit} className="deposit-form"><label htmlFor="bank-reference">{bank.hint}</label><input id="bank-reference" dir="rtl" inputMode="numeric" pattern="[0-9]*" value={bankValue} onChange={(event) => setBankValue(event.target.value.replace(/\D/g, ''))} placeholder={bank.placeholder} /><button className="primary-btn" type="submit" disabled={loading || !subscriber}>تأكيد مطابقة الإيداع</button></form>
+            <form onSubmit={verifyDeposit} className="deposit-form"><label htmlFor="bank-reference">{bank.hint}</label><input id="bank-reference" dir="rtl" inputMode="numeric" pattern="[0-9]*" value={bankValue} onChange={(event) => setBankValue(event.target.value.replace(/\D/g, ''))} placeholder={bank.placeholder} /><button className="primary-btn" type="submit" disabled={loading || !subscriber}>تأكيد التجديد</button></form>
           </div>
 
-          {deposit && <motion.div className="deposit-result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}><div className="deposit-result-title"><span>✓</span><div><strong>تم مطابقة الإيداع</strong></div></div><div className="deposit-details"><span>البنك<strong>{formatBankLabel(deposit.bank || bank.label)}</strong></span><span>المبلغ<strong>{formatNumber(Number(deposit.amount))} ريال</strong></span><span>الرقم<strong>{deposit.identifier || deposit.reference || bankValue}</strong></span></div><button className="primary-btn" onClick={openRenewalConfirmation} disabled={loading}>تأكيد التجديد</button></motion.div>}
         </div>
 
       </section>
