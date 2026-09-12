@@ -16,10 +16,16 @@ function normalize(value: unknown) {
   return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '');
 }
 
+function normalizeDigits(value: unknown) {
+  return String(value ?? '')
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/\D/g, '');
+}
+
 function isSupportedBank(depositBank: unknown, bankId: string) {
-  const bank = normalize(depositBank);
+  const bank = normalize(depositBank).replace(/[-_]/g, '');
   if (bankId === 'al-amqi') {
-    return bank.includes('mashqas') || bank.includes('mashaqis') || bank.includes('مشاقص') || bank.includes('العمقي');
+    return bank.includes('mashqas') || bank.includes('mashaqis') || bank.includes('مشاقص') || bank.includes('مشقاص') || bank.includes('العمقي') || bank.includes('amqi');
   }
   return bank.includes('kuraimi') || bank.includes('الكريمي');
 }
@@ -51,8 +57,8 @@ export async function POST(request: Request) {
 
     const result = await depositsResponse.json();
     const deposits: ExternalDeposit[] = Array.isArray(result) ? result : Array.isArray(result.data) ? result.data : [];
-    const inputIdentifier = normalize(reference);
-    const deposit = deposits.find((item) => isSupportedBank(item.bank, bankId) && normalize(item.identifier) === inputIdentifier && Number(item.amount) === Number(amount));
+    const inputIdentifier = normalizeDigits(reference);
+    const deposit = deposits.find((item) => isSupportedBank(item.bank, bankId) && normalizeDigits(item.identifier) === inputIdentifier && Number(item.amount) === Number(amount));
 
     if (!deposit) {
       return NextResponse.json({ success: false, message: `لم يتم العثور على إيداع مطابق. تواصل مع الإدارة على ${ADMIN_PHONE}.` }, { status: 404 });
