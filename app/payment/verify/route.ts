@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 const ADMIN_PHONE = '770326828';
 const DEPOSITS_ENDPOINT = 'https://star26.vercel.app/api/external/v1/deposits';
+const SUPPORTED_PACKAGE_AMOUNTS = new Set([3000, 6000, 9000, 15000]);
 
 type ExternalDeposit = {
   id?: string | number;
@@ -33,9 +34,9 @@ function isSupportedBank(depositBank: unknown, bankId: string) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cardNumber, subscriberName, bank, bankId, reference, amount, packageLabel } = body;
+    const { cardNumber, subscriberName, bank, bankId, reference } = body;
 
-    if (!cardNumber || !bankId || !reference || !amount) {
+    if (!cardNumber || !bankId || !reference) {
       return NextResponse.json({ success: false, message: 'بيانات المطابقة غير مكتملة.' }, { status: 400 });
     }
 
@@ -58,17 +59,18 @@ export async function POST(request: Request) {
     const result = await depositsResponse.json();
     const deposits: ExternalDeposit[] = Array.isArray(result) ? result : Array.isArray(result.data) ? result.data : [];
     const inputIdentifier = normalizeDigits(reference);
-    const deposit = deposits.find((item) => isSupportedBank(item.bank, bankId) && normalizeDigits(item.identifier) === inputIdentifier && Number(item.amount) === Number(amount));
+    const deposit = deposits.find((item) => isSupportedBank(item.bank, bankId) && normalizeDigits(item.identifier) === inputIdentifier);
 
     if (!deposit) {
       return NextResponse.json({ success: false, message: `لم يتم العثور على إيداع مطابق. تواصل مع الإدارة على ${ADMIN_PHONE}.` }, { status: 404 });
     }
 
-    if (Number(deposit.amount) !== Number(amount)) {
-      return NextResponse.json({ success: false, message: `المبلغ غير صحيح، تواصل مع الإدارة على ${ADMIN_PHONE}.` }, { status: 422 });
+    const depositAmount = Number(deposit.amount);
+    if (!SUPPORTED_PACKAGE_AMOUNTS.has(depositAmount)) {
+      return NextResponse.json({ success: false, message: `المبلغ الذي أودعته ${depositAmount.toLocaleString('en-US')} لا يساوي أي قيمة باقة لدينا.` }, { status: 422 });
     }
 
-    return NextResponse.json({ success: true, deposit: { ...deposit, id: deposit.id, bank: deposit.bank || bank, amount: Number(deposit.amount), reference: deposit.identifier } });
+    return NextResponse.json({ success: true, deposit: { ...deposit, id: deposit.id, bank: deposit.bank || bank, amount: depositAmount, reference: deposit.identifier } });
   } catch (error) {
     console.error('Payment verification error:', error);
     return NextResponse.json({ success: false, message: 'حدث خطأ أثناء مطابقة الإيداع.' }, { status: 500 });

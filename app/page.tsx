@@ -21,6 +21,22 @@ type Deposit = { id?: string | number; senderName?: string; identifier?: string 
 const formatNumber = (value: number) => value.toLocaleString('en-US');
 const formatDays = (value: number | string) => typeof value === 'number' ? Math.max(0, value).toLocaleString('en-US') : value;
 
+const formatBankLabel = (value?: string) => {
+  const bank = String(value ?? '').toLowerCase();
+
+  if (bank.includes('alomqy') || bank.includes('al-amqi') || bank.includes('mash')) return 'العمقي';
+  if (bank.includes('kuraimi') || bank.includes('الكريمي')) return 'الكريمي';
+
+  return value || 'البنك';
+};
+
+const getPackageByAmount = (amount?: number | string) => {
+  const formattedAmount = Number(amount);
+  if (!Number.isFinite(formattedAmount)) return null;
+
+  return packages.find((item) => item.price === formattedAmount) ?? null;
+};
+
 export default function HomePage() {
   const [cardNumber, setCardNumber] = useState('');
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
@@ -33,6 +49,7 @@ export default function HomePage() {
   const [deposit, setDeposit] = useState<Deposit | null>(null);
   const [complete, setComplete] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState(false);
+  const [renewalConfirmationOpen, setRenewalConfirmationOpen] = useState(false);
 
   const selectedPackage = packages.find((item) => item.id === selected) ?? packages[0];
   const bank = banks.find((item) => item.id === selectedBank) ?? banks[0];
@@ -95,12 +112,14 @@ export default function HomePage() {
         setMessage(result.message || 'لم يتم العثور على إيداع مطابق.');
         return;
       }
-      if (Number(result.deposit?.amount) !== selectedPackage.price) {
-        setMessage('المبلغ غير صحيح، تواصل مع الإدارة على 770326828.');
-        return;
+
+      const matchedPackage = getPackageByAmount(result.deposit?.amount);
+      if (matchedPackage) {
+        setSelected(matchedPackage.id);
       }
+
       setDeposit(result.deposit);
-      setMessage('تمت مطابقة الإيداع. يمكنك الآن السداد.');
+      setMessage('');
     } catch {
       setMessage('تعذر الاتصال بخدمة مطابقة الإيداعات.');
     } finally {
@@ -108,15 +127,24 @@ export default function HomePage() {
     }
   }
 
+  function openRenewalConfirmation() {
+    if (!subscriber || !deposit) return;
+    setRenewalConfirmationOpen(true);
+  }
+
   async function confirmRenewal() {
     if (!subscriber || !deposit) return;
+
+    const renewalPackage = getPackageByAmount(deposit.amount) ?? selectedPackage;
+
+    setRenewalConfirmationOpen(false);
     setLoadingLabel('جارِ تسجيل التجديد...');
     setLoading(true);
     try {
       const response = await fetch('/renew', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardNumber: cardNumber.trim(), packageId: selectedPackage.id, subscriberId: subscriber.id, customerName: subscriber.name, packageLabel: selectedPackage.label, amount: selectedPackage.price, currentExpiry: subscriber.expiry, paymentReference: bankValue.trim(), paymentBank: bank.label, depositId: deposit.id }),
+        body: JSON.stringify({ cardNumber: cardNumber.trim(), packageId: renewalPackage.id, subscriberId: subscriber.id, customerName: subscriber.name, packageLabel: renewalPackage.label, amount: renewalPackage.price, currentExpiry: subscriber.expiry, paymentReference: bankValue.trim(), paymentBank: bank.label, depositId: deposit.id }),
       });
       const result = await response.json();
       if (!response.ok || !result.success) {
@@ -180,12 +208,12 @@ export default function HomePage() {
             <form onSubmit={verifyDeposit} className="deposit-form"><label htmlFor="bank-reference">{bank.hint}</label><input id="bank-reference" dir="rtl" inputMode="numeric" pattern="[0-9]*" value={bankValue} onChange={(event) => setBankValue(event.target.value.replace(/\D/g, ''))} placeholder={bank.placeholder} /><button className="primary-btn" type="submit" disabled={loading || !subscriber}>تأكيد مطابقة الإيداع</button></form>
           </div>
 
-          {deposit && <motion.div className="deposit-result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}><div className="deposit-result-title"><span>✓</span><div><strong>تم العثور على الإيداع</strong><small>يمكنك الآن السداد</small></div></div><div className="deposit-details"><span>البنك<strong>{deposit.bank || bank.label}</strong></span><span>المبلغ<strong>{formatNumber(Number(deposit.amount))} ريال</strong></span><span>الرقم<strong>{deposit.identifier || deposit.reference || bankValue}</strong></span><span>التاريخ<strong>{deposit.date || 'تم التحقق'}</strong></span></div><button className="primary-btn" onClick={confirmRenewal} disabled={loading}>تأكيد السداد والتجديد</button></motion.div>}
+          {deposit && <motion.div className="deposit-result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}><div className="deposit-result-title"><span>✓</span><div><strong>تم مطابقة الإيداع</strong></div></div><div className="deposit-details"><span>البنك<strong>{formatBankLabel(deposit.bank || bank.label)}</strong></span><span>المبلغ<strong>{formatNumber(Number(deposit.amount))} ريال</strong></span><span>الرقم<strong>{deposit.identifier || deposit.reference || bankValue}</strong></span></div><button className="primary-btn" onClick={openRenewalConfirmation} disabled={loading}>تأكيد السداد والتجديد</button></motion.div>}
         </div>
 
       </section>
 
-      <AnimatePresence>{message && !isSuccessMessage && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><motion.div className="modal error-modal" initial={{ opacity: 0, scale: .88, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .94, y: 10 }} transition={{ type: 'spring', stiffness: 280, damping: 22 }}><div className="error-icon">!</div><p>{message}</p><button className="primary-btn" onClick={() => setMessage('')}>إغلاق</button></motion.div></motion.div>}{loading && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><div className="loading-box"><div className="loading-spinner" /><strong>{loadingLabel}</strong><span>يرجى الانتظار لحظات</span></div></motion.div>}{complete && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><div className="modal"><div className="success-icon">✓</div><span className="eyebrow">تمت العملية بنجاح</span><h2>تم تجديد الاشتراك</h2><p>تم تسجيل تجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label} بنجاح.</p><button className="primary-btn" onClick={() => setComplete(false)}>متابعة</button></div></motion.div>}</AnimatePresence>
+      <AnimatePresence>{message && !isSuccessMessage && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><motion.div className="modal error-modal" initial={{ opacity: 0, scale: .88, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .94, y: 10 }} transition={{ type: 'spring', stiffness: 280, damping: 22 }}><div className="error-icon">!</div><p>{message}</p><button className="primary-btn" onClick={() => setMessage('')}>إغلاق</button></motion.div></motion.div>}{loading && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><div className="loading-box"><div className="loading-spinner" /><strong>{loadingLabel}</strong><span>يرجى الانتظار لحظات</span></div></motion.div>}{renewalConfirmationOpen && deposit && subscriber && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><motion.div className="modal" initial={{ opacity: 0, scale: .9, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .95, y: 10 }}><div className="success-icon">?</div><span className="eyebrow">تأكيد التجديد</span><h2>هل تريد تأكيد السداد والتجديد؟</h2><div className="confirmation-details"><div><span>اسم المشترك</span><strong>{subscriber.name}</strong></div><div><span>رقم الكرت</span><strong dir="ltr">{cardNumber}</strong></div><div><span>الباقة</span><strong>{(getPackageByAmount(deposit.amount) ?? selectedPackage).label}</strong></div><div><span>المبلغ المودع</span><strong>{formatNumber(Number(deposit.amount))} ريال</strong></div></div><div className="modal-actions"><button type="button" className="secondary-btn" onClick={() => setRenewalConfirmationOpen(false)}>إلغاء</button><button type="button" className="primary-btn" onClick={confirmRenewal}>تأكيد السداد والتجديد</button></div></motion.div></motion.div>}{complete && <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><div className="modal"><div className="success-icon">✓</div><span className="eyebrow">تمت العملية بنجاح</span><h2>تم تجديد الاشتراك</h2><p>تم تسجيل تجديد كرت <strong>{cardNumber}</strong> لمدة {selectedPackage.label} بنجاح.</p><button className="primary-btn" onClick={() => setComplete(false)}>متابعة</button></div></motion.div>}</AnimatePresence>
     </main>
   );
 }
