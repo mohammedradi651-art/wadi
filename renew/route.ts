@@ -5,11 +5,12 @@ const url = "api.alwaadi.net";
 const db = "alwaadi_DB";
 const USERNAME = "770326M";
 const PASSWORD = "770326828moh";
+const DEPOSITS_ENDPOINT = 'https://star26.vercel.app/api/external/v1/deposits';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { cardNumber, packageId, subscriberId, customerName, phone, packageLabel, amount, currentExpiry } = body;
+    const { cardNumber, packageId, subscriberId, customerName, phone, packageLabel, amount, currentExpiry, depositId } = body;
 
     if (!cardNumber || !packageId) {
       return NextResponse.json({ success: false, message: "بيانات الطلب غير مكتملة." }, { status: 400 });
@@ -48,6 +49,22 @@ export async function POST(req: Request) {
     });
 
     if (createResult) {
+      const masterApiKey = process.env.MASTER_API_KEY;
+      if (!masterApiKey || !depositId) {
+        return NextResponse.json({ success: false, message: "تعذر إغلاق الإيداع بعد تسجيل التجديد." }, { status: 502 });
+      }
+
+      const paidResponse = await fetch(DEPOSITS_ENDPOINT, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${masterApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ depositId }),
+        cache: 'no-store',
+      });
+
+      if (!paidResponse.ok) {
+        return NextResponse.json({ success: false, message: "تم تسجيل التجديد، لكن تعذر إغلاق الإيداع. راجع لوحة الإيداعات." }, { status: 502 });
+      }
+
       let newExpiry = currentExpiry || "غير محدد";
       try {
         const createdRecord = await new Promise<any>((resolve, reject) => {
