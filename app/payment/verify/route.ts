@@ -25,7 +25,7 @@ function normalizeDigits(value: unknown) {
 function isSupportedBank(depositBank: unknown, bankId: string) {
   const bank = normalize(depositBank).replace(/[-_]/g, '');
   if (bankId === 'al-amqi') {
-    return bank.includes('mashqas') || bank.includes('mashaqis') || bank.includes('مشاقص') || bank.includes('مشقاص') || bank.includes('العمقي') || bank.includes('amqi');
+    return bank.includes('mashqas') || bank.includes('mashaqis') || bank.includes('مشاقص') || bank.includes('مشقاص') || bank.includes('العمقي') || bank.includes('amqi') || bank.includes('alomqy');
   }
   return bank.includes('kuraimi') || bank.includes('الكريمي');
 }
